@@ -1,149 +1,87 @@
-# Data-Cleaning-with-SQL
+# Nashville Housing Data Cleaning with SQL
 
---cleaning data in sql queries
+## Project Title: Nashville Housing Data Cleaning
 
-select *
-from PortfolioProject1..NashvilleHousings$
-	
---standadise the date format 
+## Project Description:
 
-select SaleDate, convert (Date,SaleDate)
-from PortfolioProject1..NashvilleHousings$
+This project focuses on cleaning and preparing a raw dataset of Nashville housing data using SQL. The data, originally containing inconsistencies, null values, and formatting issues, has been processed to create a standardized and ready-to-analyze dataset. The queries perform various data cleaning tasks, including standardizing date formats, populating missing addresses, separating address components into individual columns, correcting inconsistent data entries, removing duplicate records, and deleting unnecessary columns.
 
-update NashvilleHousings$
-set SaleDate = convert (Date,SaleDate)
+## Technologies Used:
 
--- populate property address 
+* **Microsoft SQL Server Management Studio (SSMS):** Used to execute and manage the SQL queries.
+* **SQL (Structured Query Language):** The primary language used for data manipulation and cleaning.
 
-select *
-from PortfolioProject1..NashvilleHousings$
-Where PropertyAddress is null 
-order by ParcelID
+## Installation Instructions:
 
-select a.ParcelID, a.PropertyAddress, b.ParcelID, b.PropertyAddress,
-isnull(a.PropertyAddress,b.PropertyAddress)
-from PortfolioProject1..NashvilleHousings$ a
-join PortfolioProject1..NashvilleHousings$ b
- on a.ParcelID = b.ParcelID
- and a.[UniqueID ] <> b.[UniqueID ]
- where a.PropertyAddress is null 
+### Prerequisites:
 
- update a 
- set PropertyAddress = isnull(a.PropertyAddress,b.PropertyAddress)
- from PortfolioProject1..NashvilleHousings$ a
-join PortfolioProject1..NashvilleHousings$ b
- on a.ParcelID = b.ParcelID
- and a.[UniqueID ] <> b.[UniqueID ]
- where a.PropertyAddress is null 
+* Ensure you have Microsoft SQL Server installed and running.
+* Install SQL Server Management Studio (SSMS) to interact with the SQL Server.
 
- --breaking out addresses into individual columns (address,city,state)
+### Database Setup:
 
- select PropertyAddress
-from PortfolioProject1..NashvilleHousings$
-Where PropertyAddress is null 
-order by ParcelID
+1. Open SSMS and connect to your SQL Server instance.
+2. Create a new database. For example, name it `NashvilleHousingData`.
+3. Import the Nashville housing data into a new table named `NashvilleHousings$`. You can import the data from a CSV or Excel file using the SQL Server Import and Export Wizard or by using the `BULK INSERT` command. Make sure the table structure matches the original data.
 
-select
-substring( PropertyAddress, 1, CHARINDEX(',', PropertyAddress)-1) as Address 
-,substring( PropertyAddress, CHARINDEX(',', PropertyAddress)+1, len(PropertyAddress ))
-from PortfolioProject1..NashvilleHousings$
+### Running the Queries:
 
-alter table PortfolioProject1..NashvilleHousings$
-add PropertySplitAddress nvarchar(255)
+1. Clone or download this repository to your local machine.
+2. Open the `NashvilleHousingDataCleaning.sql` file in SSMS.
+3. Ensure you are connected to the `NashvilleHousingData` database.
+4. Execute the SQL queries in the order they appear in the file. Each section is commented to explain its purpose.
 
-update PortfolioProject1..NashvilleHousings$
-set PropertySplitAddress = substring( PropertyAddress, 1, CHARINDEX(',', PropertyAddress)-1)
+## Usage Examples:
 
-alter table PortfolioProject1..NashvilleHousings$
-add PropertySplitCity nvarchar(255)
+The `NashvilleHousingDataCleaning.sql` file contains the following data cleaning operations:
 
-update PortfolioProject1..NashvilleHousings$
-set PropertySplitCity = substring( PropertyAddress, CHARINDEX(',', PropertyAddress)+1, len(PropertyAddress ))
+* **Standardizing Date Format:** The `SaleDate` column is converted to a consistent `DATE` format.
+* **Populating Property Address Data:** Missing `PropertyAddress` values are filled in by matching `ParcelID` values from other rows.
+* **Separating Address Components:** * The `PropertyAddress` column is split into `PropertySplitAddress` and `PropertySplitCity` columns.
+    * The `OwnerAddress` column is split into `OwnerSplitAddress`, `OwnerSplitCity`, and `OwnerSplitState`.
+* **Standardizing "SoldAsVacant" Field:** The `SoldAsVacant` column is standardized to use "Yes" and "No" instead of "Y" and "N".
+* **Removing Duplicate Records:** Duplicate rows are identified and removed using a Common Table Expression (CTE) and the `ROW_NUMBER()` function.
+* **Deleting Unused Columns:** Columns like `OwnerAddress`, `TaxDistrict`, `PropertyAddress`, and `SaleDate` are removed after the necessary data transformations.
 
-select *
-from PortfolioProject1..NashvilleHousings$
+**Example Query (Standardizing Date):**
 
-select OwnerAddress
-from PortfolioProject1..NashvilleHousings$
+```sql
+UPDATE NashvilleHousings$
+SET SaleDate = CONVERT(DATE, SaleDate);
 
+```
+**Example Query (Removing Duplicates):**
 
-select 
-PARSENAME(replace(OwnerAddress, ',' , '.' ), 1)
-,PARSENAME(replace(OwnerAddress, ',' , '.' ), 2)
-,PARSENAME(replace(OwnerAddress, ',' , '.' ), 3)
-from PortfolioProject1..NashvilleHousings$
-
-alter table PortfolioProject1..NashvilleHousings$
-add OwnerSplitAddress nvarchar(255)
-
-update PortfolioProject1..NashvilleHousings$
-set OwnerSplitAddress = PARSENAME(replace(OwnerAddress, ',' , '.' ), 3)
-
-alter table PortfolioProject1..NashvilleHousings$
-add OwnerSplitCity nvarchar(255)
-
-update PortfolioProject1..NashvilleHousings$
-set OwnerSplitCity = PARSENAME(replace(OwnerAddress, ',' , '.' ), 2)
-
-alter table PortfolioProject1..NashvilleHousings$
-add OwnerSplitState nvarchar(255)
-
-update PortfolioProject1..NashvilleHousings$
-set OwnerSplitState = PARSENAME(replace(OwnerAddress, ',' , '.' ), 1)
-
-select *
-from PortfolioProject1..NashvilleHousings$
-
---change y and n to yes and no in "Sold as vacant" field
-
-select distinct(soldasvacant), count(soldasvacant) 
-from PortfolioProject1..NashvilleHousings$
-group by soldasvacant
-order by 2
-
-select soldasvacant
-, case when soldasvacant = 'Y' then 'YES'
-       when soldasvacant = 'N' then 'NO'
-	   else soldasvacant
-	   end
- from PortfolioProject1..NashvilleHousings$
-
- update PortfolioProject1..NashvilleHousings$
-set soldasvacant = case when soldasvacant = 'Y' then 'YES'
-       when soldasvacant = 'N' then 'NO'
-	   else soldasvacant
-	   end
-
---remove duplicates
-
-
-with RowNumCte as(
-select *,
-ROW_NUMBER() over(
-partition by ParcelID,
-             PropertyAddress,
-			 SalePrice,
-			 SaleDate,
-			 LegalReference
-			 order by 
-			 UniqueID
-			 )row_num
-from PortfolioProject1..NashvilleHousings$
---order by ParcelID
+```sql
+WITH RowNumCTE AS (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY 
+                ParcelID,
+                PropertyAddress,
+                SalePrice,
+                SaleDate,
+                LegalReference
+            ORDER BY
+                UniqueID
+        ) row_num
+    FROM NashvilleHousings$
 )
-delete
-from RowNumCte
-where row_num > 1
---order by PropertyAddress
+DELETE FROM RowNumCTE
+WHERE row_num > 1;
+```
 
---delete unused colums 
+## License Information:
+This project is open-source and available for use under the MIT License. Feel free to use and modify the code as needed.
 
-select *
-from PortfolioProject1..NashvilleHousings$
+## Contact Information:
 
-alter table PortfolioProject1..NashvilleHousings$
-drop column OwnerAddress, TaxDistrict, PropertyAddress
+For questions or feedback, please contact:
 
-alter table PortfolioProject1..NashvilleHousings$
-drop column SaleDate
- 
+Fareeha
+
+fareeha.theanalyst@gmail.com
+
+https://github.com/faririz2001
+
